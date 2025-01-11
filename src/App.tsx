@@ -37,9 +37,7 @@ function App() {
   const [userInput, setUserInput] = useState("");
   const [validatedInput, setValidatedInput] = useState("");
 
-  // 用于随机/全部挖空时的选项
   const [options, setOptions] = useState<string[]>([]);
-  // 记录当前选项的正确/错误状态
   const [optionFeedback, setOptionFeedback] = useState<(null | "correct" | "incorrect")[]>([]);
 
   const [currentSentenceStart, setCurrentSentenceStart] = useState(0);
@@ -84,7 +82,7 @@ function App() {
     }
   }, []);
 
-  // 第一次加载题库后，如果 originalText 为空，则显示第 0 题
+  // 第一次加载题库后，如果 originalText 为空，则自动显示第 0 题
   useEffect(() => {
     if (questions.length > 0 && originalText.trim() === "") {
       ensureCompletionArrayLength(questions.length);
@@ -147,7 +145,7 @@ function App() {
     }
   };
 
-  // 预设题库加载
+  // 读取预设题库
   const loadPredefinedFile = async (fileName: string) => {
     try {
       const response = await fetch(`/predefined/${fileName}`);
@@ -228,7 +226,7 @@ function App() {
     setShowQuestionSelectModal(false);
   };
 
-  // maskedText 改变后，如果是随机/全部，则自动找第一个空位 + 生成选项
+  // maskedText 改变后，如果是随机/全部 => 自动找第一个空位
   useEffect(() => {
     if ((mode === "random" || mode === "all") && maskedText.length > 0) {
       const firstEmpty = findNextEmptyPosition(0, maskedText, mode === "random" ? initialMask : undefined);
@@ -245,7 +243,7 @@ function App() {
     }
   }, [maskedText, mode, originalText, initialMask]);
 
-  // Debounce userInput
+  // Debounce userInput => validatedInput
   useEffect(() => {
     const timer = setTimeout(() => {
       setValidatedInput(userInput);
@@ -253,19 +251,19 @@ function App() {
     return () => clearTimeout(timer);
   }, [userInput]);
 
-  // 判断是否是标点
+  // 判断标点
   const isPunctuation = (char: string) => {
     return /[\u3000-\u303f\uff00-\uff0f\uff1a-\uff20\uff3b-\uff40\uff5b-\uff65]/.test(char);
   };
 
-  // 生成随机选项
+  // 生成选项
   const generateOptions = (correctChar: string) => {
     const chars = Array.from(originalText).filter((char) => !isPunctuation(char));
     const uniqueChars = Array.from(new Set(chars)).filter((c) => c !== correctChar);
     const additionalChars = "之乎者也矣".split("");
     const availableChars = [...uniqueChars, ...additionalChars];
 
-    const randomChars = [];
+    const randomChars: string[] = [];
     while (randomChars.length < 5 && availableChars.length > 0) {
       const randomIndex = Math.floor(Math.random() * availableChars.length);
       randomChars.push(availableChars[randomIndex]);
@@ -325,7 +323,7 @@ function App() {
     setCurrentSentenceStart(0);
   };
 
-  // 自由练习模式输入
+  // 自由练习模式输入 => 更新 maskedText
   useEffect(() => {
     if (mode === "free" && validatedInput) {
       const newMasked = [...maskedText];
@@ -449,7 +447,7 @@ function App() {
     return char === targetChar ? "correct" : "incorrect";
   };
 
-  // -------------------- 修复：改用 useMemo 避免重复定义 questionDone --------------------
+  // 使用 useMemo 避免重复计算 questionDone
   const questionDone = useMemo(() => {
     if (questions.length === 0) return false;
     if (mode === "random" || mode === "all") {
@@ -464,7 +462,6 @@ function App() {
       return true;
     }
     return false;
-    // 依赖列表
   }, [questions, mode, maskedText, originalText, currentSentenceStart]);
 
   // 完成后 +1
@@ -618,21 +615,22 @@ function App() {
     setTextByQuestion(questions, currentQuestionIndex);
   };
 
-  // 一些简单的 tailwind 过渡
-  const questionCardClass = "bg-white/80 rounded-lg p-4 sm:p-6 shadow-lg transition-all ease-out duration-300";
+  // 卡片样式
+  const questionCardClass =
+    "bg-white/80 rounded-lg p-4 sm:p-6 shadow-lg transition-all ease-out duration-300";
 
-  // 仅在 tailwind class 中，如果题完成也可以再做一些 class 动态切换
+  // 若题已完成可加 extra class
   const questionDoneClass = questionDone ? "" : "";
 
   return (
     <>
       <div className="min-h-screen bg-[#f5e6d3] p-4 sm:p-8 flex flex-col gap-4">
-        {/* 顶部标题：平方赖江湖琅琊体 => .app-title */}
+        {/* 顶部标题 */}
         <div className="app-title text-center text-4xl sm:text-5xl text-gray-700 font-bold">
           古文易遍通
         </div>
 
-        {/* 第一行按钮：导入题库 / 模式切换 / 选择题目 / 上下题 */}
+        {/* 第一行按钮区 */}
         <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
             <button
@@ -704,10 +702,9 @@ function App() {
                 <span
                   key={index}
                   onClick={() => handleCharacterClick(index)}
-                  className={`inline-block min-w-[1em] text-center transition-color-change
-                    ${char === null ? "border-b-2 border-amber-800 cursor-pointer" : ""}
-                    ${isCurrent ? "bg-amber-200 animate-fill" : ""}
-                  `}
+                  className={`inline-block min-w-[1em] text-center transition-color-change ${
+                    char === null ? "border-b-2 border-amber-800 cursor-pointer" : ""
+                  } ${isCurrent ? "bg-amber-200 animate-fill" : ""}`}
                 >
                   {char || "　"}
                 </span>
@@ -729,8 +726,10 @@ function App() {
             </div>
           </div>
 
+          {/* 未完成时 显示选项/输入框 */}
           {!questionDone && (
             <>
+              {/* 随机/全部模式 选项 */}
               {(mode === "random" || mode === "all") && options.length > 0 && (
                 <div className="flex gap-2 flex-wrap">
                   {options.map((char, idx) => {
@@ -754,24 +753,31 @@ function App() {
                 </div>
               )}
 
+              {/* 自由模式输入框 */}
               {mode === "free" && (
                 <div className="relative font-serif text-base sm:text-lg w-full animate-fadeIn">
+                  
                   <input
                     ref={inputRef}
                     type="text"
-                    className="w-full p-2 sm:p-3 rounded border border-amber-200 bg-white text-transparent selection:bg-gray-200 caret-black transition-all"
+                    className="w-full p-2 sm:p-3 rounded border border-amber-200 bg-white selection:bg-gray-200 caret-black"
+                    style={{
+                      padding: "0.5rem",
+                      color: "transparent",         // 让文字不可见，但保留光标正确位置
+                      lineHeight: "1.8",           // 与overlay行高一致
+                      fontSize: "1rem",            // text-base ~ 1rem
+                    }}
                     placeholder="在此输入文字..."
                     value={userInput}
                     onChange={handleInputChange}
                   />
+
                   <div
                     className="absolute inset-0 pointer-events-none"
                     style={{
-                      WebkitTextFillColor: "initial",
-                      paddingTop: "0.8rem",
-                      paddingLeft: "0.5rem",
-                      paddingRight: "0.5rem",
-                      lineHeight: "1.5",
+                      padding: "0.5rem",           // 跟 input 的 p-2 保持一致
+                      lineHeight: "1.8",
+                      fontSize: "1rem",
                     }}
                   >
                     {Array.from(userInput).map((char, idx) => {
@@ -791,6 +797,7 @@ function App() {
                 </div>
               )}
 
+              {/* 右上角三个按钮：退字、退句、清空 */}
               <div className="absolute top-8 right-6 flex gap-2">
                 <button
                   onClick={handleUndoChar}
@@ -820,6 +827,7 @@ function App() {
             </>
           )}
 
+          {/* 已完成 => 显示 下一题 / 重做本题 */}
           {questionDone && (
             <div className="flex items-center gap-4">
               <button
@@ -840,7 +848,7 @@ function App() {
           )}
         </div>
 
-        {/* 底部 */}
+        {/* 底部区域 */}
         <div className="text-center text-xs text-amber-900 mt-6">
           由{" "}
           <a
